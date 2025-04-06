@@ -2,10 +2,6 @@
 	"folders": [
 		{
 			"path": "LoraSenderESPIDF"
-		},
-		{
-			"name": "LoraTestESPIDF",
-			"path": "."
 		}
 	],
 	"settings": {}
