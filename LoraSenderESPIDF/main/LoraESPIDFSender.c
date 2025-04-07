@@ -13,7 +13,7 @@
   20250406:V0.1: initial version
   20250407:V0.2: added M0 and M1 control
   20250407:V0.3: added UART control
-  20250407:V0.4:
+  20250407:V0.4: send configuration command to E32-900T30D
   */
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
@@ -30,12 +30,12 @@ static const char *TAG = "LORA_Sender";
 #define E32_M0_GPIO 10
 #define E32_M1_GPIO 11
 #define E32_AUX_GPIO 14
-#define E32_TXD_GPIO 13
-#define E32_RXD_GPIO 12
+#define E32_TXD_GPIO 12
+#define E32_RXD_GPIO 13
 
 // UART Konfiguration
 #define E32_UART_PORT UART_NUM_1
-#define BUF_SIZE 128
+#define BUF_SIZE 1024
 
 #define CONFIG_CMD_LEN 6
 #define RESPONSE_LEN 6
@@ -43,13 +43,29 @@ static const char *TAG = "LORA_Sender";
 /* Set the GPIO level according to the state (LOW or HIGH)*/
 // gpio_set_level(BLINK_GPIO, s_led_state);
 
+void wait_for_aux()
+{
+    // AUX ist HIGH, wenn das Modul bereit ist
+    while (!gpio_get_level(E32_AUX_GPIO)) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+void set_mode(uint8_t m0, uint8_t m1)
+{
+    gpio_set_level(E32_M0_GPIO, m0);
+    gpio_set_level(E32_M1_GPIO, m1);
+    vTaskDelay(pdMS_TO_TICKS(50));
+  //  wait_for_aux();
+}
+
 void app_main(void)
 {
     ESP_LOGI(TAG, "Starte E32 Sender");
     // now set direction with gpio_config
     gpio_config_t mode_conf = {
         .intr_type = GPIO_INTR_DISABLE,                                // no interrupt
-        .mode = GPIO_MODE_INPUT_OUTPUT,                                // set as output mode
+        .mode = GPIO_MODE_OUTPUT,                                // set as output mode
         .pin_bit_mask = (1ULL << E32_M0_GPIO) | (1ULL << E32_M1_GPIO), // bit mask of the pins, use a bit for each pin
         .pull_down_en = GPIO_PULLDOWN_DISABLE,                         // disable pull-down mode
         .pull_up_en = GPIO_PULLUP_DISABLE                              // disable pull-up mode
@@ -75,39 +91,53 @@ void app_main(void)
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE, // no flow control
     };
     // configure UART with the given settings
+    uart_driver_install(E32_UART_PORT, BUF_SIZE *2, 0, 0, NULL, 0);                              // install UART driver
     uart_param_config(E32_UART_PORT, &uart_config);                                                  // configure UART parameters
     uart_set_pin(E32_UART_PORT, E32_TXD_GPIO, E32_RXD_GPIO, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE); // set UART pins
-    uart_driver_install(E32_UART_PORT, BUF_SIZE, BUF_SIZE, 0, NULL, 0);                              // install UART driver
+   
 
     /*
     gpio_set_direction(E32_M0_GPIO, GPIO_MODE_INPUT_OUTPUT);
     gpio_set_direction(E32_M1_GPIO, GPIO_MODE_INPUT_OUTPUT);
     */
     gpio_dump_io_configuration(stdout, (1ULL << 10) | (1ULL << 11) | (1ULL << 12) | (1ULL << 13) | (1ULL << 14));
+/*
+    // set M0 manually to HIGH
+    gpio_set_level(E32_M0_GPIO, 1);
+    gpio_set_level(E32_M1_GPIO, 0);
+    vTaskDelay(pdMS_TO_TICKS(500)); // kurz warten
+    ESP_LOGI(TAG, "M0 Level nach setzen: %d", gpio_get_level(E32_M0_GPIO));
+    ESP_LOGI(TAG, "M1 Level nach löschen: %d", gpio_get_level(E32_M1_GPIO));
+    // set M0 manually to LOW
+    gpio_set_level(E32_M0_GPIO, 0);
+    gpio_set_level(E32_M1_GPIO, 1);
+    vTaskDelay(pdMS_TO_TICKS(500)); // kurz warten
+    ESP_LOGI(TAG, "M0 Level nach löschen: %d", gpio_get_level(E32_M0_GPIO));
+    ESP_LOGI(TAG, "M1 Level nach setzen: %d", gpio_get_level(E32_M1_GPIO));
+    */
 
-    while (1)
+    ESP_LOGI(TAG, "Setze in Programmiermodus");
+    set_mode(1, 1);
+
+    ESP_LOGI(TAG, "Sende Konfigurationsabfrage");
+    uint8_t cmd[] = {0xC1, 0xC1, 0xC1};
+    uart_write_bytes(E32_UART_PORT, (const char *)cmd, sizeof(cmd));
+    wait_for_aux();
+
+    uint8_t rx_buffer[BUF_SIZE];
+    int len = uart_read_bytes(E32_UART_PORT, rx_buffer, BUF_SIZE, pdMS_TO_TICKS(200));
+    if (len > 0)
     {
-        // set M0 manually to HIGH
-        gpio_set_level(E32_M0_GPIO, 1);
-        gpio_set_level(E32_M1_GPIO, 0);
-        vTaskDelay(pdMS_TO_TICKS(500)); // kurz warten
-        ESP_LOGI(TAG, "M0 Level nach setzen: %d", gpio_get_level(E32_M0_GPIO));
-        ESP_LOGI(TAG, "M1 Level nach löschen: %d", gpio_get_level(E32_M1_GPIO));
-        // set M0 manually to LOW
-        gpio_set_level(E32_M0_GPIO, 0);
-        gpio_set_level(E32_M1_GPIO, 1);
-        vTaskDelay(pdMS_TO_TICKS(500)); // kurz warten
-        ESP_LOGI(TAG, "M0 Level nach löschen: %d", gpio_get_level(E32_M0_GPIO));
-        ESP_LOGI(TAG, "M1 Level nach setzen: %d", gpio_get_level(E32_M1_GPIO));
-
-        /*
-
-         ESP_LOGI(TAG, "M0 Level: %d", gpio_get_level(E32_M0_GPIO));
-         ESP_LOGI(TAG, "M1 Level: %d", gpio_get_level(E32_M1_GPIO));
-         ESP_LOGI(TAG, "AUX Level: %d", gpio_get_level(E32_AUX_GPIO));
-
-         */
-
-        vTaskDelay(CONFIG_BLINK_PERIOD / portTICK_PERIOD_MS);
+        ESP_LOGI(TAG, "Antwort (%d Byte):", len);
+        for (int i = 0; i < len; i++)
+        {
+            printf("%02X ", rx_buffer[i]);
+        }
+        printf("\n");
     }
+    else
+    {
+        ESP_LOGW(TAG, "Keine Antwort erhalten");
+    }
+    ESP_LOGI(TAG, "Fertig.");
 }
