@@ -21,6 +21,7 @@
   20250408:V0.6: added function to initialize IO
   20250409:V0.7: added function to read configuration from E32 module
   20250414:V0.8: added function to decode configuration data
+  20250418:V0.9: added function to send configuration to E32 module
 
   */
 #include <stdio.h>
@@ -36,8 +37,6 @@
 
 static const char *TAG = "LORA_Sender";
 
-
-
 // forward declaration
 void wait_for_aux();
 void set_mode(uint8_t m0, uint8_t m1);
@@ -45,6 +44,7 @@ void init_io(void);
 void get_config(void);
 esp_err_t e32_send_data(const uint8_t *data, size_t len);
 void decode_config(uint8_t *data, int len);
+void sendConfiguration(e32_config_t *config);
 
 void app_main(void)
 {
@@ -54,14 +54,34 @@ void app_main(void)
 #if CONFIG_DEBUG_LORA
     ESP_LOGI(TAG, "Debug Lora enabled");
 #endif
-    init_io();                     // initialize IO pins
-    get_config();                  // read configuration from E32 module
-    vTaskDelay(pdMS_TO_TICKS(50)); // wait for command to be processed
-                                   // continously send a sample message to E32 module
+    e32_config_t config; // E32 configuration structure
+
+    init_io();                      // initialize IO pins
+    get_config();                   // read configuration from E32 module
+    vTaskDelay(pdMS_TO_TICKS(100)); // wait for command to be processed
+    e32_init_config(&config);       // initialize E32 configuration structure
+
+    // config.OPTION.transmissionPower = TRANSMISSION_POWER_27dBm; // set transmission power to 30 dBm
+
+    sendConfiguration(&config); // E32 configuration structure
+
+    vTaskDelay(pdMS_TO_TICKS(500)); // delay for 1 second
+    get_config();                   // read configuration from E32 module
+
+    config.OPTION.transmissionPower = TRANSMISSION_POWER_27dBm;     // set transmission power to 30 dBm
+    config.OPTION.wirelessWakeupTime = WIRELESS_WAKEUP_TIME_250MS; // set wakeup time to 250ms
+    config.OPTION.fec = FEC_DISABLE;                             
+    config.CHAN = 0x06;                                         // set channel to 6 (902.875MHz)    
+    sendConfiguration(&config);     // E32 configuration structure
+    vTaskDelay(pdMS_TO_TICKS(500)); // delay for 1 second
+    get_config();                   // read configuration from E32 module
+    vTaskDelay(pdMS_TO_TICKS(100)); // wait for command to be processed
+                                    // continously send a sample message to E32 module
     while (1)
     {
+
         ESP_LOGI(TAG, "send sample message");
-        char *test_msg = "Hello LoRa!\n";
+        char *test_msg = "Hello LoRa this is Tom!\n";
         ESP_ERROR_CHECK(e32_send_data((uint8_t *)test_msg, strlen(test_msg)));
         vTaskDelay(pdMS_TO_TICKS(5000)); // delay for 1 second
     }
@@ -164,7 +184,6 @@ void get_config()
     }
 
     set_mode(0, 0); // Set back to normal mode (M0=0, M1=0)
-  
 }
 
 void decode_config(uint8_t *data, int len)
@@ -226,4 +245,20 @@ void decode_config(uint8_t *data, int len)
     printf("Wakeup Time: %d ms\n", (wakeup_time + 1) * 250); // Wakeup time in ms
     printf("FEC Enabled: %s\n", fec_enabled ? "Yes" : "No");
     printf("TX Power: %s\n", tx_power_str[tx_power]);
+}
+
+void sendConfiguration(e32_config_t *config)
+{
+    ESP_LOGI(TAG, "Send configuration to E32 module");
+
+    set_mode(1, 1);                 // Set to programming mode (M0=1, M1=1)
+    vTaskDelay(pdMS_TO_TICKS(100)); // wait for command to be processed
+
+    ESP_LOGI(TAG, "Send configuration command to E32 module");
+
+    ESP_ERROR_CHECK(e32_send_data((uint8_t *)config, sizeof(e32_config_t)));
+    vTaskDelay(pdMS_TO_TICKS(50)); // wait for command to be processed
+    wait_for_aux();                // wait for AUX to be HIGH
+    set_mode(0, 0);                // Set back to normal mode (M0=0, M1=0)
+    ESP_LOGI(TAG, "Configuration command sent to E32 module");
 }
