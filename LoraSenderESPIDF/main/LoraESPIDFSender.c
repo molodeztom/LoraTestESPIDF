@@ -24,6 +24,7 @@
 
   */
 #include <stdio.h>
+#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
@@ -31,23 +32,11 @@
 #include "esp_log.h"
 #include "sdkconfig.h"
 #include "led_strip.h"
-#include <string.h>
+#include "Lora_E32.h"
 
 static const char *TAG = "LORA_Sender";
 
-// Konfiguration der Pins
-#define E32_M0_GPIO 10
-#define E32_M1_GPIO 11
-#define E32_AUX_GPIO 14
-#define E32_TXD_GPIO 12 // TXD Pin on ESP32
-#define E32_RXD_GPIO 13 // RXD Pin on ESP32
 
-// UART Konfiguration
-#define E32_UART_PORT UART_NUM_1
-#define BUF_SIZE 1024
-
-#define CONFIG_CMD_LEN 6
-#define RESPONSE_LEN 6
 
 // forward declaration
 void wait_for_aux();
@@ -69,13 +58,13 @@ void app_main(void)
     get_config();                  // read configuration from E32 module
     vTaskDelay(pdMS_TO_TICKS(50)); // wait for command to be processed
                                    // continously send a sample message to E32 module
-                                   /*     while (1)
-                                       {
-                                           ESP_LOGI(TAG, "send sample message");
-                                           char *test_msg = "Hello LoRa!\n";
-                                           ESP_ERROR_CHECK(e32_send_data((uint8_t *)test_msg, strlen(test_msg)));
-                                           vTaskDelay(pdMS_TO_TICKS(1000)); // delay for 1 second
-                                       } */
+    while (1)
+    {
+        ESP_LOGI(TAG, "send sample message");
+        char *test_msg = "Hello LoRa!\n";
+        ESP_ERROR_CHECK(e32_send_data((uint8_t *)test_msg, strlen(test_msg)));
+        vTaskDelay(pdMS_TO_TICKS(5000)); // delay for 1 second
+    }
 
     ESP_LOGI(TAG, "ready.");
 }
@@ -175,29 +164,7 @@ void get_config()
     }
 
     set_mode(0, 0); // Set back to normal mode (M0=0, M1=0)
-    printf("configurationTest 1 Default \n");
-    uint8_t rx_buffer1[] = {0xC0, 0x00, 0x00, 0x1A, 0x17, 0x44};
-    decode_config(rx_buffer1, 6); // Decode and print config in plain text
-
-    printf("configurationTest 2 \n");
-    uint8_t rx_buffer2[] = {0xC0, 0x1A, 0x07, 0x78, 0x03, 0xAA};
-    decode_config(rx_buffer2, 6); // Decode and print config in plain text
-
-    printf("configurationTest 3 \n");
-    uint8_t rx_buffer3[] = {0xC0, 0x0A, 0x35, 0xA9, 0x07, 0x4D};
-    decode_config(rx_buffer3, 6); // Decode and print config in plain text
-
-    printf("configurationTest 4 \n");
-    uint8_t rx_buffer4[] = {0xC0, 0x1F, 0xFE, 0x33, 0x01, 0x93};
-    decode_config(rx_buffer4, 6); // Decode and print config in plain text
-
-    printf("configurationTest 5 \n");
-    uint8_t rx_buffer5[] = {0xC0, 0x01, 0x00, 0xE2, 0x05, 0x5C};
-    decode_config(rx_buffer5, 6); // Decode and print config in plain text
-
-    printf("configurationTest 6 \n");
-    uint8_t rx_buffer6[] = {0xC0, 0x02, 0x05, 0x5C, 0x06, 0xA2};
-    decode_config(rx_buffer6, 6); // Decode and print config in plain text
+  
 }
 
 void decode_config(uint8_t *data, int len)
@@ -237,7 +204,7 @@ void decode_config(uint8_t *data, int len)
     const char *transmission_mode_str[] = {
         "Transparent", "Fixed", "Reserved", "Reserved"};
     const char *io_mode_str[] = {
-        "TXD, AUX OpenColOut,  RXD OpenColIn", "TXD, AUX PushPullOut, RXD PullUpIn" };
+        "TXD, AUX OpenColOut,  RXD OpenColIn", "TXD, AUX PushPullOut, RXD PullUpIn"};
     const char *tx_power_str[] = {
         "30 dBm", "27 dBm", "24 dBm", "21 dBm"};
 
@@ -245,9 +212,7 @@ void decode_config(uint8_t *data, int len)
     uint8_t io_mode = (option & 0x40) >> 6;           // Mask to get the I/O mode bits
     uint8_t wakeup_time = (option & 0x38) >> 3;       // Mask to get the wakeup time bits
     uint8_t fec_enabled = (option & 0x4) >> 2;        // Mask to get the FEC enabled bits
-    uint8_t tx_power = (option & 0x3) ;           // Mask to get the TX power bits
-
-  
+    uint8_t tx_power = (option & 0x3);                // Mask to get the TX power bits
 
     printf("E32 Module Configuration:\n");
     printf("Header: 0x%02X\n", header);
