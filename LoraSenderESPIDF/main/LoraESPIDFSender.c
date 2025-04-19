@@ -70,7 +70,7 @@ void app_main(void)
 
     config.OPTION.transmissionPower = TRANSMISSION_POWER_27dBm;     // set transmission power to 30 dBm
     config.OPTION.wirelessWakeupTime = WIRELESS_WAKEUP_TIME_250MS; // set wakeup time to 250ms
-    config.OPTION.fec = FEC_DISABLE;                             
+    config.OPTION.fec = FEC_ENABLE;                             
     config.CHAN = 0x06;                                         // set channel to 6 (902.875MHz)    
     sendConfiguration(&config);     // E32 configuration structure
     vTaskDelay(pdMS_TO_TICKS(500)); // delay for 1 second
@@ -155,28 +155,28 @@ void init_io()
 
 void get_config()
 {
-    // read configuration from E32 module and print it in hex format
-    uint8_t read_cmd[] = {0xC1, 0xC1, 0xC1}; // command to read configuration
-    uint8_t response[RESPONSE_LEN] = {0};
+    // Read configuration from E32 module and print it in hex format
+    uint8_t e32_read_cmd[] = {0xC1, 0xC1, 0xC1}; // Command to read configuration
+    uint8_t e32_response[RESPONSE_LEN] = {0};
 
-    ESP_LOGI(TAG, "set programming mode");
+    ESP_LOGI(TAG, "Set programming mode");
     set_mode(1, 1);
 
     ESP_LOGI(TAG, "Send configuration read command");
-    ESP_ERROR_CHECK(e32_send_data(read_cmd, sizeof(read_cmd)));
-    vTaskDelay(pdMS_TO_TICKS(50)); // wait for command to be processed
+    ESP_ERROR_CHECK(e32_send_data(e32_read_cmd, sizeof(e32_read_cmd)));
+    vTaskDelay(pdMS_TO_TICKS(50)); // Wait for command to be processed
 
     wait_for_aux();
-    uint8_t rx_buffer[BUF_SIZE];
-    int len = uart_read_bytes(E32_UART_PORT, rx_buffer, BUF_SIZE, pdMS_TO_TICKS(200));
-    if (len > 0)
+    uint8_t e32_rx_buffer[BUF_SIZE];
+    int e32_rx_len = uart_read_bytes(E32_UART_PORT, e32_rx_buffer, BUF_SIZE, pdMS_TO_TICKS(200));
+    if (e32_rx_len > 0)
     {
-        ESP_LOGI(TAG, "Configuration received (%d bytes):", len);
-        for (int i = 0; i < len; i++)
-            printf("%02X ", rx_buffer[i]);
+        ESP_LOGI(TAG, "Configuration received (%d bytes):", e32_rx_len);
+        for (int i = 0; i < e32_rx_len; i++)
+            printf("%02X ", e32_rx_buffer[i]);
         printf("\n");
 
-        decode_config(rx_buffer, len); // Decode and print config in plain text
+        decode_config(e32_rx_buffer, e32_rx_len); // Decode and print config in plain text
     }
     else
     {
@@ -186,79 +186,79 @@ void get_config()
     set_mode(0, 0); // Set back to normal mode (M0=0, M1=0)
 }
 
-void decode_config(uint8_t *data, int len)
+void decode_config(uint8_t *e32_data, int e32_data_len)
 {
-    if (len < 6)
+    if (e32_data_len < 6)
     {
-        printf("Invalid configuration data length: %d bytes\n", len);
+        printf("Invalid configuration data length: %d bytes\n", e32_data_len);
         return;
     }
 
-    for (int i = 0; i < len; i++)
-        printf("%02X ", data[i]);
+    for (int i = 0; i < e32_data_len; i++)
+        printf("%02X ", e32_data[i]);
     printf("\n");
 
     // Extract fields based on E32 response format
-    uint8_t header = data[0];
-    uint16_t address = (data[1] << 8) | data[2];
-    uint8_t sped = data[3];
-    uint8_t channel = data[4];
-    uint8_t option = data[5];
+    uint8_t e32_header = e32_data[0];
+    uint16_t e32_address = (e32_data[1] << 8) | e32_data[2];
+    uint8_t e32_sped = e32_data[3];
+    uint8_t e32_channel = e32_data[4];
+    uint8_t e32_option = e32_data[5];
 
-    channel = channel & 0x1F; // Bit 0-4 are channel number, bit 5-7 is reserved
+    e32_channel = e32_channel & 0x1F; // Bit 0-4 are channel number, bit 5-7 is reserved
 
     // Parse SPED byte
-    const char *uart_parity_bit[] = {
+    const char *e32_uart_parity_bit[] = {
         "8N1", "8O1", "8E1", "8N1(11)"};
-    const char *uart_baudrates[] = {
+    const char *e32_uart_baudrates[] = {
         "1200", "2400", "4800", "9600", "19200", "38400", "57600", "115200"};
-    const char *air_rates[] = {
+    const char *e32_air_rates[] = {
         "0.3 kbps", "1.2 kbps", "2.4 kbps", "4.8 kbps", "9.6 kbps", "19.2 kbps", "Invalid", "Invalid"};
 
-    uint8_t uart_baud = (sped & 0x38) >> 3; // Mask to get the UART baud rate bits
-    uint8_t air_rate = (sped & 0x7);
-    uint8_t uart_parity = (sped & 0xC0) >> 6; // Mask to get the UART parity bits
+    uint8_t e32_uart_baud = (e32_sped & 0x38) >> 3; // Mask to get the UART baud rate bits
+    uint8_t e32_air_rate = (e32_sped & 0x7);
+    uint8_t e32_uart_parity = (e32_sped & 0xC0) >> 6; // Mask to get the UART parity bits
 
     // Parse OPTION byte
-    const char *transmission_mode_str[] = {
+    const char *e32_transmission_mode_str[] = {
         "Transparent", "Fixed", "Reserved", "Reserved"};
-    const char *io_mode_str[] = {
-        "TXD, AUX OpenColOut,  RXD OpenColIn", "TXD, AUX PushPullOut, RXD PullUpIn"};
-    const char *tx_power_str[] = {
+    const char *e32_io_mode_str[] = {
+        "TXD, AUX OpenColOut, RXD OpenColIn", "TXD, AUX PushPullOut, RXD PullUpIn"};
+    const char *e32_tx_power_str[] = {
         "30 dBm", "27 dBm", "24 dBm", "21 dBm"};
 
-    uint8_t transmission_mode = (option & 0x80) >> 7; // Mask to get the I/O mode bits
-    uint8_t io_mode = (option & 0x40) >> 6;           // Mask to get the I/O mode bits
-    uint8_t wakeup_time = (option & 0x38) >> 3;       // Mask to get the wakeup time bits
-    uint8_t fec_enabled = (option & 0x4) >> 2;        // Mask to get the FEC enabled bits
-    uint8_t tx_power = (option & 0x3);                // Mask to get the TX power bits
+    uint8_t e32_transmission_mode = (e32_option & 0x80) >> 7; // Mask to get the transmission mode bits
+    uint8_t e32_io_mode = (e32_option & 0x40) >> 6;           // Mask to get the I/O mode bits
+    uint8_t e32_wakeup_time = (e32_option & 0x38) >> 3;       // Mask to get the wakeup time bits
+    uint8_t e32_fec_enabled = (e32_option & 0x4) >> 2;        // Mask to get the FEC enabled bits
+    uint8_t e32_tx_power = (e32_option & 0x3);                // Mask to get the TX power bits
 
     printf("E32 Module Configuration:\n");
-    printf("Header: 0x%02X\n", header);
-    printf("Address: 0x%04X\n", address);
-    printf("UART Parity: %s \n", uart_parity < 4 ? uart_parity_bit[uart_parity] : "Unknown");
-    printf("UART Baud Rate: %s bps\n", uart_baud < 8 ? uart_baudrates[uart_baud] : "Unknown");
-    printf("Air Data Rate: %s\n", air_rate < 6 ? air_rates[air_rate] : "Unknown");
-    printf("Channel: %d (%.1f MHz)\n", channel, 862.0 + channel);
-    printf("Transmission Mode: %s\n", transmission_mode_str[transmission_mode]);
-    printf("I/O Mode: %s\n", io_mode_str[io_mode]);
-    printf("Wakeup Time: %d ms\n", (wakeup_time + 1) * 250); // Wakeup time in ms
-    printf("FEC Enabled: %s\n", fec_enabled ? "Yes" : "No");
-    printf("TX Power: %s\n", tx_power_str[tx_power]);
+    printf("Header: 0x%02X\n", e32_header);
+    printf("Address: 0x%04X\n", e32_address);
+    printf("UART Parity: %s \n", e32_uart_parity < 4 ? e32_uart_parity_bit[e32_uart_parity] : "Unknown");
+    printf("UART Baud Rate: %s bps\n", e32_uart_baud < 8 ? e32_uart_baudrates[e32_uart_baud] : "Unknown");
+    printf("Air Data Rate: %s\n", e32_air_rate < 6 ? e32_air_rates[e32_air_rate] : "Unknown");
+    printf("Channel: %d (%.1f MHz)\n", e32_channel, 862.0 + e32_channel);
+    printf("Transmission Mode: %s\n", e32_transmission_mode_str[e32_transmission_mode]);
+    printf("I/O Mode: %s\n", e32_io_mode_str[e32_io_mode]);
+    printf("Wakeup Time: %d ms\n", (e32_wakeup_time + 1) * 250); // Wakeup time in ms
+    printf("FEC Enabled: %s\n", e32_fec_enabled ? "Yes" : "No");
+    printf("TX Power: %s\n", e32_tx_power_str[e32_tx_power]);
 }
 
-void sendConfiguration(e32_config_t *config)
+void sendConfiguration(e32_config_t *e32_config)
 {
     ESP_LOGI(TAG, "Send configuration to E32 module");
 
     set_mode(1, 1);                 // Set to programming mode (M0=1, M1=1)
-    vTaskDelay(pdMS_TO_TICKS(100)); // wait for command to be processed
+    vTaskDelay(pdMS_TO_TICKS(100)); // Wait for command to be processed
 
     ESP_LOGI(TAG, "Send configuration command to E32 module");
 
-    ESP_ERROR_CHECK(e32_send_data((uint8_t *)config, sizeof(e32_config_t)));
-    vTaskDelay(pdMS_TO_TICKS(50)); // wait for command to be processed
-    wait_for_aux();                // wait for AUX to be HIGH
+    ESP_ERROR_CHECK(e32_send_data((uint8_t *)e32_config, sizeof(e32_config_t)));
+    vTaskDelay(pdMS_TO_TICKS(50)); // Wait for command to be processed
+    wait_for_aux();                // Wait for AUX to be HIGH
     set_mode(0, 0);                // Set back to normal mode (M0=0, M1=0)
     ESP_LOGI(TAG, "Configuration command sent to E32 module");
 }
