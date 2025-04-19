@@ -4,5 +4,16 @@
 			"path": "LoraSenderESPIDF"
 		}
 	],
-	"settings": {}
+	"settings": {},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			
+			{
+				"name": "ESP-IDF Debug: Launch",
+				"type": "espidf",
+				"request": "launch"
+			}
+		]
+	}
 }
