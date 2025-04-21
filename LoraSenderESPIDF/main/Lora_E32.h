@@ -92,6 +92,7 @@ enum MODE
     MODE_SLEEP = 0b11
 };
 
+
 #pragma pack(push, 1) // no padding between struct members
 typedef struct
 {

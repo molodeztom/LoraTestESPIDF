@@ -22,6 +22,7 @@
   20250409:V0.7: added function to read configuration from E32 module
   20250414:V0.8: added function to decode configuration data
   20250418:V0.9: added function to send configuration to E32 module
+  20250421:V0.10: set module to sleep mode and wake up again
 
   */
 #include <stdio.h>
@@ -50,7 +51,7 @@ void app_main(void)
 {
     // esp_log_level_set("*", ESP_LOG_WARN);  // Nur INFO und höher (WARN, ERROR)
     esp_log_level_set("LORA_Sender", ESP_LOG_INFO); // Nur INFO und höher (WARN, ERROR)
-    ESP_LOGI(TAG, "LoRAESPIDFSender V0.7");
+    ESP_LOGI(TAG, "LoRAESPIDFSender V0.9");
 #if CONFIG_DEBUG_LORA
     ESP_LOGI(TAG, "Debug Lora enabled");
 #endif
@@ -68,25 +69,47 @@ void app_main(void)
     vTaskDelay(pdMS_TO_TICKS(500)); // delay for 1 second
     get_config();                   // read configuration from E32 module
 
-    config.OPTION.transmissionPower = TRANSMISSION_POWER_27dBm;     // set transmission power to 30 dBm
-    config.OPTION.wirelessWakeupTime = WIRELESS_WAKEUP_TIME_250MS; // set wakeup time to 250ms
-    config.OPTION.fec = FEC_ENABLE;                             
-    config.CHAN = 0x06;                                         // set channel to 6 (902.875MHz)    
+    config.OPTION.transmissionPower = TRANSMISSION_POWER_27dBm;    // set transmission power to 30 dBm
+    config.OPTION.wirelessWakeupTime = WIRELESS_WAKEUP_TIME_2000MS;// set wakeup time to 250ms
+    config.OPTION.fec = FEC_ENABLE;
+    config.CHAN = 0x06;             // set channel to 6 (902.875MHz)
     sendConfiguration(&config);     // E32 configuration structure
     vTaskDelay(pdMS_TO_TICKS(500)); // delay for 1 second
     get_config();                   // read configuration from E32 module
     vTaskDelay(pdMS_TO_TICKS(100)); // wait for command to be processed
-                                    // continously send a sample message to E32 module
+    // continously send a sample message to E32 module
+    int n = 10; // number of messages to send
     while (1)
     {
+        n = 5; // number of messages to send
+        while (n > 0)
+        {
 
-        ESP_LOGI(TAG, "send sample message");
-        char *test_msg = "Hello LoRa this is Tom!\n";
-        ESP_ERROR_CHECK(e32_send_data((uint8_t *)test_msg, strlen(test_msg)));
-        vTaskDelay(pdMS_TO_TICKS(5000)); // delay for 1 second
+            ESP_LOGI(TAG, "send sample message");
+            char *test_msg = "Hello LoRa this is Tom! V0.9\n";
+            ESP_ERROR_CHECK(e32_send_data((uint8_t *)test_msg, strlen(test_msg)));
+            vTaskDelay(pdMS_TO_TICKS(5000)); // delay for 1 second
+            n--;
+        }
+        ESP_LOGI(TAG, "E32 to sleep mode");
+        set_mode(1, 1);                   // Set to programming mode (M0=1, M1=1)
+        vTaskDelay(pdMS_TO_TICKS(10000)); // Wait for command to be processed
+        set_mode(0, 0);                   // Set back to normal mode (M0=0, M1=0)
+        wait_for_aux();                // Wait for AUX to be HIGH
+        n = 5;                           // number of messages to send
+        ESP_LOGI(TAG, "E32 to normal mode");
+        while (n > 0)
+        {
+
+            ESP_LOGI(TAG, "send sample message");
+            char *test_msg = "Hello LoRa this is Tom after sleep! V0.8\n";
+            ESP_ERROR_CHECK(e32_send_data((uint8_t *)test_msg, strlen(test_msg)));
+            vTaskDelay(pdMS_TO_TICKS(5000)); // delay for 1 second
+            n--;
+        }
+
+        ESP_LOGI(TAG, "ready.");
     }
-
-    ESP_LOGI(TAG, "ready.");
 }
 
 void wait_for_aux()
