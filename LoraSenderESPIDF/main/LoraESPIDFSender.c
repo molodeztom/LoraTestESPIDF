@@ -62,15 +62,15 @@ void app_main(void)
     vTaskDelay(pdMS_TO_TICKS(100)); // wait for command to be processed
     e32_init_config(&config);       // initialize E32 configuration structure
 
-    // config.OPTION.transmissionPower = TRANSMISSION_POWER_27dBm; // set transmission power to 30 dBm
+   
 
     sendConfiguration(&config); // E32 configuration structure
 
     vTaskDelay(pdMS_TO_TICKS(500)); // delay for 1 second
     get_config();                   // read configuration from E32 module
 
-    config.OPTION.transmissionPower = TRANSMISSION_POWER_27dBm;    // set transmission power to 30 dBm
-    config.OPTION.wirelessWakeupTime = WIRELESS_WAKEUP_TIME_2000MS;// set wakeup time to 250ms
+    config.OPTION.transmissionPower = TRANSMISSION_POWER_21dBm;    // set transmission power to 30 dBm
+    config.OPTION.wirelessWakeupTime = WIRELESS_WAKEUP_TIME_500MS;// set wakeup time to 250ms
     config.OPTION.fec = FEC_ENABLE;
     config.CHAN = 0x06;             // set channel to 6 (902.875MHz)
     sendConfiguration(&config);     // E32 configuration structure
