@@ -3,6 +3,8 @@
 #define Lora_E32_h
 #endif
 
+static const char *TAG = "LORA_Sender";
+
 // Pin configuration
 #define E32_M0_GPIO 10
 #define E32_M1_GPIO 11
@@ -16,6 +18,8 @@
 
 #define CONFIG_CMD_LEN 6
 #define RESPONSE_LEN 6
+
+#define WAIT_FOR_PROCESSING 100 // ms This is the time required for the module to process commands.
 
 enum E32_UART_PARITY
 {
@@ -86,10 +90,10 @@ enum TRANSMISSION_POWER
 
 enum MODE
 {
-    MODE_TRANSPARENT = 0b00,
-    MODE_FIXED = 0b01,
-    MODE_PROGRAMMING = 0b10,
-    MODE_SLEEP = 0b11
+    MODE_NORMAL = 0b00,
+    MODE_WAKEUP = 0b01,
+    MODE_POWERSAVE = 0b10,
+    MODE_SLEEP_PROG = 0b11
 };
 
 
@@ -123,16 +127,28 @@ typedef struct
 
 void e32_init_config(e32_config_t *config)
 {
-    config->HEAD = 0xC0; // save parameter when power-down
+    config->HEAD = 0xC0; // This is the command to save parameters to non-volatile memory.
     config->ADDH = 0x00;
     config->ADDL = 0x00;
     config->SPED.uartParity = E32_UART_PARITY_8N1;
     config->SPED.uartBaudRate = E32_UART_BAUD_RATE_9600;
     config->SPED.airDataRate = AIR_DATA_RATE_2400;
-    config->CHAN = 0x06;                                         // Kanal 7 (902.875MHz)
+    config->CHAN = 0x06; // Kanal 7 (902.875MHz)
+    // Add explanation for 0x06: This corresponds to channel 7 in the frequency range.
     config->OPTION.fixedTransmission = TRANSMISSION_TRANSPARENT; // Transparent mode
     config->OPTION.ioDriveMode = IO_DRIVE_MODE_PUSH_PULL;
     config->OPTION.wirelessWakeupTime = WIRELESS_WAKEUP_TIME_250MS;
     config->OPTION.fec = FEC_ENABLE;
     config->OPTION.transmissionPower = TRANSMISSION_POWER_30dBm; // 30dBm
 }
+
+// forward declaration
+void wait_for_aux();
+void set_mode(enum MODE mode);
+void init_io(void);
+void get_config(void);
+esp_err_t e32_send_data(const uint8_t *data, size_t len);
+void decode_config(uint8_t *data, int len);
+void sendConfiguration(e32_config_t *config);
+
+
