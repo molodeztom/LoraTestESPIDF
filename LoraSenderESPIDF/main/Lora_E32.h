@@ -19,7 +19,7 @@ static const char *TAG = "LORA_Sender";
 #define CONFIG_CMD_LEN 6
 #define RESPONSE_LEN 6
 
-#define WAIT_FOR_PROCESSING 100 // ms This is the time required for the module to process commands.
+#define WAIT_FOR_PROCESSING 200 // ms This is the time required for the module to process commands.
 
 enum E32_UART_PARITY
 {
@@ -150,5 +150,9 @@ void get_config(void);
 esp_err_t e32_send_data(const uint8_t *data, size_t len);
 void decode_config(uint8_t *data, int len);
 void sendConfiguration(e32_config_t *config);
+bool e32_data_available();
+esp_err_t e32_receive_data(uint8_t *buffer, size_t buffer_len, size_t *received_len);
+
+
 
 
