@@ -201,6 +201,7 @@ esp_err_t e32_receive_data(uint8_t *buffer, size_t buffer_len, size_t *received_
     if (buffer == NULL || received_len == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
+    wait_for_aux(); // Wait for AUX to be HIGH
 
     int len = uart_read_bytes(E32_UART_PORT, buffer, buffer_len, pdMS_TO_TICKS(100));
 
