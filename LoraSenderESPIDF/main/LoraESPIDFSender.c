@@ -24,6 +24,8 @@
   20250418:V0.9: added function to send configuration to E32 module
   20250421:V0.10: set module to sleep mode and wake up again
   20240424:V0.11: clean up code, added comments, removed unused code, move declarations to header file
+  20240501:V0.12: added function to receive data
+
 
   */
 #include <stdio.h>
@@ -44,11 +46,13 @@ void app_main(void)
 {
     // esp_log_level_set("*", ESP_LOG_WARN);  // Nur INFO und höher (WARN, ERROR)
     esp_log_level_set("LORA_Sender", ESP_LOG_INFO); // Nur INFO und höher (WARN, ERROR)
-    ESP_LOGI(TAG, "LoRAESPIDFSender V0.11");
+    ESP_LOGI(TAG, "LoRAESPIDFSender V0.12");
 #if CONFIG_DEBUG_LORA
     ESP_LOGI(TAG, "Debug Lora enabled");
 #endif
     e32_config_t config; // E32 configuration structure
+    uint8_t rx_buffer[128];
+    size_t received = 0;
 
     init_io();                      // initialize IO pins
     e32_init_config(&config);       // initialize E32 configuration structure
@@ -63,23 +67,41 @@ void app_main(void)
     int n = 10; // number of messages to send
     while (1)
     {
-        n = 5; // number of messages to send
+        n = 2; // number of messages to send
         while (n > 0)
         {
 
             ESP_LOGI(TAG, "send sample message");
-            char *test_msg = "Hello LoRa this is Tom! V0.11\n";
+            char *test_msg = "Hello LoRa this is Tom! V0.12\n";
             ESP_ERROR_CHECK(e32_send_data((uint8_t *)test_msg, strlen(test_msg)));
             vTaskDelay(pdMS_TO_TICKS(5000)); // delay for 5 seconds
             n--;
         }
+
+
+        
+        esp_err_t err = e32_receive_data(rx_buffer, sizeof(rx_buffer), &received);
+        
+        if (err == ESP_OK && received > 0) {
+            printf("Received %d bytes: ", (int)received);
+            for (size_t i = 0; i < received; i++) {
+                printf("%c", rx_buffer[i]);
+            }
+            printf("\n");
+        } else if (err == ESP_ERR_TIMEOUT) {
+            printf("No data received (timeout)\n");
+        } else {
+            printf("Receive error: %s\n", esp_err_to_name(err));
+        }
+        
+        
   
         ESP_LOGI(TAG, "E32 to sleep mode");
         set_mode(MODE_SLEEP_PROG);                   // Set to deep sleep mode (M0=1, M1=1)
         vTaskDelay(pdMS_TO_TICKS(1000)); //Let sleep for a while
         set_mode(MODE_NORMAL);                   // Set back to normal mode (M0=0, M1=0)
         wait_for_aux();                // Wait for AUX to be HIGH
-        n = 5;                           // number of messages to send
+        n = 1;                           // number of messages to send
         ESP_LOGI(TAG, "E32 to normal mode");
         while (n > 0)
         {
@@ -163,11 +185,48 @@ void init_io()
 #endif */
 }
 
+bool e32_data_available() {
+    // Check if there is data available in the UART buffer
+    size_t length = 0;
+    if (uart_get_buffered_data_len(E32_UART_PORT, &length) == ESP_OK) {
+        return length > 0;
+    }
+    return false;
+}
+
+
+
+esp_err_t e32_receive_data(uint8_t *buffer, size_t buffer_len, size_t *received_len)
+{
+    if (buffer == NULL || received_len == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    int len = uart_read_bytes(E32_UART_PORT, buffer, buffer_len, pdMS_TO_TICKS(100));
+
+    if (len > 0) {
+        *received_len = (size_t)len;
+
+        // Optional: null-terminate if there's space
+        if (*received_len < buffer_len) {
+            buffer[*received_len] = '\0';
+        }
+
+        return ESP_OK;
+    } else {
+        *received_len = 0;
+        return ESP_ERR_TIMEOUT;  // no data received within timeout
+    }
+}
+
+
+
+
 void get_config()
 {
     // Read configuration from E32 module and print it in hex format
     uint8_t e32_read_cmd[] = {0xC1, 0xC1, 0xC1}; // Command to read configuration (0xC1: Read module's configuration)
-    uint8_t e32_response[RESPONSE_LEN] = {0};
+ //   uint8_t e32_response[RESPONSE_LEN] = {0};
 
     ESP_LOGI(TAG, "Set programming mode");
     set_mode(MODE_SLEEP_PROG);
