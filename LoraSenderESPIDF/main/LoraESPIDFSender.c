@@ -23,8 +23,9 @@
   20250414:V0.8: added function to decode configuration data
   20250418:V0.9: added function to send configuration to E32 module
   20250421:V0.10: set module to sleep mode and wake up again
-  20240424:V0.11: clean up code, added comments, removed unused code, move declarations to header file
-  20240501:V0.12: added function to receive data
+  20250424:V0.11: clean up code, added comments, removed unused code, move declarations to header file
+  20250501:V0.12: added function to receive data
+
 
 
   */
