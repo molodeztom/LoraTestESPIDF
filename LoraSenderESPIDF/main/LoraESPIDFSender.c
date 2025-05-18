@@ -25,6 +25,7 @@
   20250421:V0.10: set module to sleep mode and wake up again
   20250424:V0.11: clean up code, added comments, removed unused code, move declarations to header file
   20250501:V0.12: added function to receive data
+  20250518:V0.13: all functions moved to E32_Lora_Lib.c
 
 
 
@@ -65,7 +66,7 @@ void app_main(void)
     config.OPTION.fec = FEC_ENABLE;
     config.CHAN = 0x06;             // set channel to 6 (902.875MHz)
     sendConfiguration(&config);     // E32 configuration structure
-    vTaskDelay(pdMS_TO_TICKS(WAIT_FOR_PROCESSING)); // wait for command to be processed
+    vTaskDelay(pdMS_TO_TICKS(WAIT_FOR_PROCESSING_LIB)); // wait for command to be processed
     // get_config();                   // read configuration from E32 module
     // continously send a sample message to E32 module
     int n = 10; // number of messages to send
@@ -123,53 +124,7 @@ void app_main(void)
 }
 
 
-void init_io()
-{
-    ESP_LOGI(TAG, "Initialisiere IO-Pins");
-    // configure command pins M0 and M1
-    gpio_config_t mode_conf = {
-        .intr_type = GPIO_INTR_DISABLE,                                // no interrupt
-        .mode = GPIO_MODE_OUTPUT,                                      // set as output mode
-        .pin_bit_mask = (1ULL << E32_M0_GPIO) | (1ULL << E32_M1_GPIO), // bit mask of the pins, use a bit for each pin
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,                         // disable pull-down mode
-        .pull_up_en = GPIO_PULLUP_DISABLE                              // disable pull-up mode
-    };
-    gpio_config(&mode_conf);
-    // configure AUX pin
-    gpio_config_t aux_conf = {
-        .intr_type = GPIO_INTR_DISABLE,         // no interrupt
-        .mode = GPIO_MODE_INPUT,                // set as input mode
-        .pin_bit_mask = (1ULL << E32_AUX_GPIO), // bit mask of the pins, use a bit for each pin
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,  // disable pull-down mode
-        .pull_up_en = GPIO_PULLUP_DISABLE       // disable pull-up mode
-    };
-    gpio_config(&aux_conf);
 
-    // configure UART with the given settings
-    uart_config_t uart_config = {
-        .baud_rate = 9600,                     // baud rate
-        .data_bits = UART_DATA_8_BITS,         // data bits
-        .parity = UART_PARITY_DISABLE,         // no parity
-        .stop_bits = UART_STOP_BITS_1,         // stop bits
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE, // no flow control
-    };
-    uart_driver_install(E32_UART_PORT, BUF_SIZE * 2, 0, 0, NULL, 0);                                 // install UART driver
-    uart_param_config(E32_UART_PORT, &uart_config);                                                  // configure UART parameters
-    uart_set_pin(E32_UART_PORT, E32_TXD_GPIO, E32_RXD_GPIO, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE); // set UART pins
-/* #if CONFIG_DEBUG_LORA
-    gpio_dump_io_configuration(stdout, (1ULL << 10) | (1ULL << 11) | (1ULL << 12) | (1ULL << 13) | (1ULL << 14));
-    ESP_LOGI(TAG, "GPIO M0: %d, M1: %d, TXD: %d, RXD: %d, AUX: %d", E32_M0_GPIO, E32_M1_GPIO, E32_TXD_GPIO, E32_RXD_GPIO, E32_AUX_GPIO);
-#endif */
-}
-
-bool e32_data_available() {
-    // Check if there is data available in the UART buffer
-    size_t length = 0;
-    if (uart_get_buffered_data_len(E32_UART_PORT, &length) == ESP_OK) {
-        return length > 0;
-    }
-    return false;
-}
 
 
 
