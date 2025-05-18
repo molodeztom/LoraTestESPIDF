@@ -66,7 +66,7 @@ void app_main(void)
     config.CHAN = 0x06;             // set channel to 6 (902.875MHz)
     sendConfiguration(&config);     // E32 configuration structure
     vTaskDelay(pdMS_TO_TICKS(WAIT_FOR_PROCESSING)); // wait for command to be processed
-    get_config();                   // read configuration from E32 module
+    // get_config();                   // read configuration from E32 module
     // continously send a sample message to E32 module
     int n = 10; // number of messages to send
     while (1)
@@ -173,33 +173,10 @@ bool e32_data_available() {
 
 
 
-esp_err_t e32_receive_data(uint8_t *buffer, size_t buffer_len, size_t *received_len)
-{
-    if (buffer == NULL || received_len == NULL) {
-        return ESP_ERR_INVALID_ARG;
-    }
-    wait_for_aux(); // Wait for AUX to be HIGH
-
-    int len = uart_read_bytes(E32_UART_PORT, buffer, buffer_len, pdMS_TO_TICKS(100));
-
-    if (len > 0) {
-        *received_len = (size_t)len;
-
-        // Optional: null-terminate if there's space
-        if (*received_len < buffer_len) {
-            buffer[*received_len] = '\0';
-        }
-
-        return ESP_OK;
-    } else {
-        *received_len = 0;
-        return ESP_ERR_TIMEOUT;  // no data received within timeout
-    }
-}
 
 
-
-
+/*
+// Remove get_config and decode_config implementations from this file, as they are now in the component.
 void get_config()
 {
     // Read configuration from E32 module and print it in hex format
@@ -289,4 +266,5 @@ void decode_config(uint8_t *e32_data, int e32_data_len)
     printf("FEC Enabled: %s\n", e32_fec_enabled ? "Yes" : "No");
     printf("TX Power: %s\n", e32_tx_power_str[e32_tx_power]);
 }
+*/
 

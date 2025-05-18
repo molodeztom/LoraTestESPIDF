@@ -111,12 +111,7 @@ void e32_init_config(e32_config_t *config)
 //
 /* void set_mode(enum MODE mode); */
 //void wait_for_aux();
-void init_io(void);
-void get_config(void);
-void decode_config(uint8_t *data, int len);
 
-bool e32_data_available();
-esp_err_t e32_receive_data(uint8_t *buffer, size_t buffer_len, size_t *received_len);
 
 
 
