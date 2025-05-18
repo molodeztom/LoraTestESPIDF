@@ -132,23 +132,23 @@ void app_main(void)
     }
 } */
 
-void set_mode(enum MODE mode)
+/* void set_mode(enum MODE mode)
 {
     gpio_set_level(E32_M0_GPIO, (mode & 0b01));
     gpio_set_level(E32_M1_GPIO, ((mode & 0b10) >> 1));
     vTaskDelay(pdMS_TO_TICKS(WAIT_FOR_PROCESSING));
     wait_for_aux();
-}
+} */
 
 
 
-// send data to E32 module
+/* // send data to E32 module
 esp_err_t e32_send_data(const uint8_t *data, size_t len)
 {
     int bytes_written = uart_write_bytes(E32_UART_PORT, (const char *)data, len);
     ESP_LOGI(TAG, "%d Bytes send", len);
     return (bytes_written == len) ? ESP_OK : ESP_FAIL;
-}
+} */
 
 void init_io()
 {

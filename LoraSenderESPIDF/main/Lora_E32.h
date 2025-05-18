@@ -12,9 +12,7 @@
 #define E32_TXD_GPIO 12 // TXD Pin on ESP32
 #define E32_RXD_GPIO 13 // RXD Pin on ESP32
 
-// UART configuration
-#define E32_UART_PORT UART_NUM_1
-#define BUF_SIZE 1024
+
 
 #define CONFIG_CMD_LEN 6
 #define RESPONSE_LEN 6
@@ -88,13 +86,7 @@ enum TRANSMISSION_POWER
     TRANSMISSION_POWER_21dBm = 0b11
 };
 
-enum MODE
-{
-    MODE_NORMAL = 0b00,
-    MODE_WAKEUP = 0b01,
-    MODE_POWERSAVE = 0b10,
-    MODE_SLEEP_PROG = 0b11
-};
+
 
 
 #pragma pack(push, 1) // no padding between struct members
@@ -144,11 +136,10 @@ void e32_init_config(e32_config_t *config)
 
 // forward declaration
 //
-void set_mode(enum MODE mode);
+/* void set_mode(enum MODE mode); */
 //void wait_for_aux();
 void init_io(void);
 void get_config(void);
-esp_err_t e32_send_data(const uint8_t *data, size_t len);
 void decode_config(uint8_t *data, int len);
 void sendConfiguration(e32_config_t *config);
 bool e32_data_available();
