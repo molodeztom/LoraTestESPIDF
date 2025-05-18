@@ -38,8 +38,10 @@
 #include "esp_log.h"
 #include "sdkconfig.h"
 #include "led_strip.h"
+#include "E32_Lora_Lib.h"
 #include "Lora_E32.h"
 
+static const char *TAG = "LORA_SENDER";
 
 
 
@@ -54,6 +56,7 @@ void app_main(void)
     e32_config_t config; // E32 configuration structure
     uint8_t rx_buffer[128];
     size_t received = 0;
+    func(); // Call the function to print the message
 
     init_io();                      // initialize IO pins
     e32_init_config(&config);       // initialize E32 configuration structure
@@ -119,7 +122,7 @@ void app_main(void)
     }
 }
 
-void wait_for_aux()
+/* void wait_for_aux()
 {
     // AUX is HIGH, when module is ready
     ESP_LOGI(TAG, "Wait for AUX to be HIGH");
@@ -127,7 +130,7 @@ void wait_for_aux()
     {
         vTaskDelay(pdMS_TO_TICKS(WAIT_FOR_PROCESSING));
     }
-}
+} */
 
 void set_mode(enum MODE mode)
 {

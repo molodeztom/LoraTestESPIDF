@@ -3,7 +3,7 @@
 #define Lora_E32_h
 #endif
 
-static const char *TAG = "LORA_Sender";
+
 
 // Pin configuration
 #define E32_M0_GPIO 10
@@ -143,8 +143,9 @@ void e32_init_config(e32_config_t *config)
 }
 
 // forward declaration
-void wait_for_aux();
+//
 void set_mode(enum MODE mode);
+//void wait_for_aux();
 void init_io(void);
 void get_config(void);
 esp_err_t e32_send_data(const uint8_t *data, size_t len);
