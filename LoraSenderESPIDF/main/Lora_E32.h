@@ -89,33 +89,6 @@ enum TRANSMISSION_POWER
 
 
 
-#pragma pack(push, 1) // no padding between struct members
-typedef struct
-{
-    uint8_t airDataRate : 3;  // bit 0-2
-    uint8_t uartBaudRate : 3; // bit 3-5
-    uint8_t uartParity : 2;   // bit 6-7
-} e32_speed_t;
-
-typedef struct
-{
-    uint8_t transmissionPower : 2;  // bit 0-1
-    uint8_t fec : 1;                // bit 2
-    uint8_t wirelessWakeupTime : 3; // bit 3-5
-    uint8_t ioDriveMode : 1;        // bit 6
-    uint8_t fixedTransmission : 1;  // bit 7
-} e32_option_t;
-
-typedef struct 
-{
-    uint8_t HEAD;
-    uint8_t ADDH;
-    uint8_t ADDL;
-    e32_speed_t SPED;
-    uint8_t CHAN;
-    e32_option_t OPTION;
-} e32_config_t;
-#pragma pack(pop)
 
 void e32_init_config(e32_config_t *config)
 {
@@ -141,7 +114,7 @@ void e32_init_config(e32_config_t *config)
 void init_io(void);
 void get_config(void);
 void decode_config(uint8_t *data, int len);
-void sendConfiguration(e32_config_t *config);
+
 bool e32_data_available();
 esp_err_t e32_receive_data(uint8_t *buffer, size_t buffer_len, size_t *received_len);
 

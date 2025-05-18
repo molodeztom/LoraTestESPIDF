@@ -122,33 +122,6 @@ void app_main(void)
     }
 }
 
-/* void wait_for_aux()
-{
-    // AUX is HIGH, when module is ready
-    ESP_LOGI(TAG, "Wait for AUX to be HIGH");
-    while (!gpio_get_level(E32_AUX_GPIO))
-    {
-        vTaskDelay(pdMS_TO_TICKS(WAIT_FOR_PROCESSING));
-    }
-} */
-
-/* void set_mode(enum MODE mode)
-{
-    gpio_set_level(E32_M0_GPIO, (mode & 0b01));
-    gpio_set_level(E32_M1_GPIO, ((mode & 0b10) >> 1));
-    vTaskDelay(pdMS_TO_TICKS(WAIT_FOR_PROCESSING));
-    wait_for_aux();
-} */
-
-
-
-/* // send data to E32 module
-esp_err_t e32_send_data(const uint8_t *data, size_t len)
-{
-    int bytes_written = uart_write_bytes(E32_UART_PORT, (const char *)data, len);
-    ESP_LOGI(TAG, "%d Bytes send", len);
-    return (bytes_written == len) ? ESP_OK : ESP_FAIL;
-} */
 
 void init_io()
 {
@@ -317,18 +290,3 @@ void decode_config(uint8_t *e32_data, int e32_data_len)
     printf("TX Power: %s\n", e32_tx_power_str[e32_tx_power]);
 }
 
-void sendConfiguration(e32_config_t *e32_config)
-{
-    ESP_LOGI(TAG, "Send configuration to E32 module");
-
-    set_mode(MODE_SLEEP_PROG);                 // Set to programming mode (M0=1, M1=1)
-    vTaskDelay(pdMS_TO_TICKS(WAIT_FOR_PROCESSING)); // Wait for command to be processed
-
-    ESP_LOGI(TAG, "Send configuration command to E32 module");
-
-    ESP_ERROR_CHECK(e32_send_data((uint8_t *)e32_config, sizeof(e32_config_t)));
-    vTaskDelay(pdMS_TO_TICKS(WAIT_FOR_PROCESSING)); // Wait for command to be processed
-    wait_for_aux();                // Wait for AUX to be HIGH
-    set_mode(MODE_NORMAL);                // Set back to normal mode (M0=0, M1=0)
-    ESP_LOGI(TAG, "Configuration command sent to E32 module");
-}
