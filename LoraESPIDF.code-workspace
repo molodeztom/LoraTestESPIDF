@@ -4,7 +4,11 @@
 			"path": "LoraSenderESPIDF"
 		}
 	],
-	"settings": {},
+	"settings": {
+		"files.associations": {
+			"gpio.h": "c"
+		}
+	},
 	"launch": {
 		"version": "0.2.0",
 		"configurations": [
