@@ -26,6 +26,7 @@
   20250424:V0.11: clean up code, added comments, removed unused code, move declarations to header file
   20250501:V0.12: added function to receive data
   20250518:V0.13: all functions moved to E32_Lora_Lib.c
+  20250607:V0.14: Send and receive with Lora Receiver on the other side now works Compiled with ESP-IDF v5.4.1
 
 
 
@@ -49,7 +50,10 @@ void app_main(void)
 {
     // esp_log_level_set("*", ESP_LOG_WARN);  // Nur INFO und höher (WARN, ERROR)
     esp_log_level_set("LORA_Sender", ESP_LOG_INFO); // Nur INFO und höher (WARN, ERROR)
-    ESP_LOGI(TAG, "LoRAESPIDFSender V0.12");
+    ESP_LOGI(TAG, "LoRAESPIDFSender V0.13");
+    printf("LoRAESPIDFSender V0.13\n");
+
+    
 #if CONFIG_DEBUG_LORA
     ESP_LOGI(TAG, "Debug Lora enabled");
 #endif
@@ -119,7 +123,7 @@ void app_main(void)
 
 
         ESP_LOGI(TAG, "ready.");
-    }
+    } 
 }
 
 
